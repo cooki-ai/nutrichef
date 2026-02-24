@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>NutriChef AI — Cuisine & Nutrition</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@400,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: "#13ec80",
+        "bg-light": "#f6f8f7",
+        "bg-dark": "#102219",
+        "sage-light": "#e7f3ed",
+        "sage-muted": "#4c9a73",
+        "sage-dark": "#1a3d2b",
+      },
+      fontFamily: { display: ["Manrope", "sans-serif"] },
+      borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", "3xl": "1.5rem", full: "9999px" },
+    },
+  },
+}
+</script>
+<style>
+* { -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Manrope', sans-serif; background: #f6f8f7; }
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: block; }
+.ms { font-family: 'Material Symbols Outlined'; font-weight: 400; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes slideIn { from { opacity:0; transform: translateX(-8px); } to { opacity:1; transform: translateX(0); } }
+.anim-up { animation: fadeUp .35s cubic-bezier(.16,1,.3,1) both; }
+.spinner-el { animation: spin .8s linear infinite; }
+.no-scroll::-webkit-scrollbar { display: none; }
+.no-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+/* Sidebar active state */
+.nav-item.active { background: rgba(19,236,128,.12); color: #13ec80; font-weight: 700; }
+.nav-item { transition: all .2s; }
+.nav-item:hover:not(.active) { background: #f0f4f2; }
+/* Chat bubbles */
+.msg-ai { background: #fff; border: 1px solid #e2e8e4; border-bottom-left-radius: 4px; }
+.msg-user { background: #13ec80; color: #102219; border-bottom-right-radius: 4px; }
+/* Custom scrollbar for chat */
+.chat-scroll::-webkit-scrollbar { width: 3px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+/* Meal block */
+.meal-expand { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+.meal-expand.open { max-height: 600px; }
+</style>
+</head>
+<body class="font-display">
+
+<!-- ═══════════════════════════════ LANDING ═══════════════════════════════ -->
+<div id="landing" class="screen active bg-bg-light">
+  <!-- Nav -->
+  <nav id="lnav" class="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between transition-all duration-300">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="goToAuth()">
+      <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+        <span class="ms text-bg-dark" style="font-size:18px;font-variation-settings:'FILL' 1">restaurant_menu</span>
+      </div>
+      <span class="text-lg font-extrabold tracking-tight">NutriChef <span class="text-primary">AI</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <a class="hidden md:block text-sm font-semibold text-slate-500 px-4 py-2 rounded-xl hover:bg-white transition-colors cursor-pointer">Fonctionnalités</a>
+      <a class="hidden md:block text-sm font-semibold text-slate-500 px-4 py-2 rounded-xl hover:bg-white transition-colors cursor-pointer">Tarifs</a>
+      <button onclick="goToAuth()" class="bg-primary text-bg-dark px-5 py-2.5 rounded-xl text-sm font-extrabold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">Commencer →</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="min-h-screen flex flex-col items-center justify-center text-center px-5 pt-24 pb-16 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-bg-light via-sage-light/30 to-bg-light pointer-events-none"></div>
+    <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/8 blur-3xl pointer-events-none"></div>
+    <div class="relative anim-up">
+      <div class="inline-flex items-center gap-2 bg-white border border-sage-light px-4 py-2 rounded-full text-sm font-bold text-sage-muted mb-8 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+        IA Gemini 2.5 · Gratuit pour commencer
+      </div>
+      <h1 class="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-[1.02] mb-5">
+        Mange mieux,<br><span class="text-primary">cuisine plus futé</span>
+      </h1>
+      <p class="text-lg md:text-xl text-slate-500 max-w-lg mx-auto mb-10 font-medium leading-relaxed">
+        Ton chef & nutritionniste IA personnel. Recettes sur mesure, programmes 7 jours, conseils nutrition.
+      </p>
+      <div class="flex flex-wrap gap-3 justify-center mb-14">
+        <button onclick="goToAuth()" class="bg-primary text-bg-dark px-8 py-4 rounded-2xl text-base font-extrabold hover:opacity-90 transition-all hover:-translate-y-0.5 shadow-xl shadow-primary/25 flex items-center gap-2">
+          <span class="ms" style="font-variation-settings:'FILL' 1">auto_awesome</span> Commencer gratuitement
+        </button>
+        <button class="bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl text-base font-bold hover:border-primary transition-colors flex items-center gap-2">
+          <span class="ms">play_circle</span> Voir la démo
+        </button>
+      </div>
+      <div class="flex items-center justify-center gap-8 flex-wrap">
+        <div class="text-center"><div class="text-3xl font-black">12K+</div><div class="text-sm text-slate-400 font-medium">Recettes générées</div></div>
+        <div class="w-px h-10 bg-slate-200"></div>
+        <div class="text-center"><div class="text-3xl font-black text-primary">100%</div><div class="text-sm text-slate-400 font-medium">Personnalisées</div></div>
+        <div class="w-px h-10 bg-slate-200"></div>
+        <div class="text-center"><div class="text-3xl font-black">Gratuit</div><div class="text-sm text-slate-400 font-medium">Pour toujours</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="py-20 px-5 bg-white">
+    <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-12">
+        <div class="inline-block bg-sage-light text-sage-muted text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-4">Fonctionnalités</div>
+        <h2 class="text-4xl font-black tracking-tight">Tout pour manger sainement</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5">
+        <div class="p-7 rounded-3xl border border-slate-100 hover:border-primary/30 hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors"><span class="ms text-sage-muted group-hover:text-bg-dark" style="font-variation-settings:'FILL' 1">kitchen</span></div>
+          <div class="text-lg font-extrabold mb-2">Mon Frigo</div>
+          <div class="text-sm text-slate-400 leading-relaxed">Ajoute tes ingrédients, reçois une recette chef en quelques secondes.</div>
+        </div>
+        <div class="p-7 rounded-3xl border border-slate-100 hover:border-primary/30 hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors"><span class="ms text-sage-muted group-hover:text-bg-dark" style="font-variation-settings:'FILL' 1">calendar_month</span></div>
+          <div class="text-lg font-extrabold mb-2">Programme 7 jours</div>
+          <div class="text-sm text-slate-400 leading-relaxed">Plan interactif — macros, liste de courses automatique, repas cochables.</div>
+        </div>
+        <div class="p-7 rounded-3xl border border-slate-100 hover:border-primary/30 hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors"><span class="ms text-sage-muted group-hover:text-bg-dark" style="font-variation-settings:'FILL' 1">chat_bubble</span></div>
+          <div class="text-lg font-extrabold mb-2">Conseiller IA</div>
+          <div class="text-sm text-slate-400 leading-relaxed">Chat nutritionnel personnalisé basé sur ton profil et tes objectifs.</div>
+        </div>
+        <div class="p-7 rounded-3xl border border-slate-100 hover:border-primary/30 hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors"><span class="ms text-sage-muted group-hover:text-bg-dark" style="font-variation-settings:'FILL' 1">person</span></div>
+          <div class="text-lg font-extrabold mb-2">Profil personnalisé</div>
+          <div class="text-sm text-slate-400 leading-relaxed">IMC, TDEE, objectifs — chaque suggestion parfaitement adaptée.</div>
+        </div>
+        <div class="p-7 rounded-3xl border border-slate-100 hover:border-primary/30 hover:-translate-y-1 transition-all group">
+          <div class="w-12 h-12 rounded-2xl bg-sage-light flex items-center justify-center mb-5 group-hover:bg-primary transition-colors"><span class="ms text-sage-muted group-hover:text-bg-dark" style="font-variation-settings:'FILL' 1">history</span></div>
+          <div class="text-lg font-extrabold mb-2">Historique</div>
+          <div class="text-sm text-slate-400 leading-relaxed">Retrouve toutes tes recettes et programmes, sauvegardés en cloud.</div>
+        </div>
+        <div class="p-7 rounded-3xl border border-primary/20 bg-sage-light hover:-translate-y-1 transition-all">
+          <div class="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center mb-5"><span class="ms text-bg-dark" style="font-variation-settings:'FILL' 1">bolt</span></div>
+          <div class="text-lg font-extrabold mb-2 text-sage-dark">IA Gemini 2.5</div>
+          <div class="text-sm text-sage-muted leading-relaxed">Les derniers modèles IA pour des recettes précises et créatives.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="py-20 px-5 bg-bg-light">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-center mb-12">
+        <div class="inline-block bg-sage-light text-sage-muted text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-4">Tarifs</div>
+        <h2 class="text-4xl font-black tracking-tight">Simple et transparent</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5">
+        <div class="bg-white p-8 rounded-3xl border border-slate-100">
+          <div class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Gratuit</div>
+          <div class="text-5xl font-black tracking-tighter mb-1">€0</div>
+          <div class="text-sm text-slate-400 mb-7">pour toujours</div>
+          <ul class="space-y-3 mb-8 text-sm font-medium">
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>5 recettes / jour</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>1 programme / mois</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>10 conseils / jour</li>
+            <li class="flex gap-3 text-slate-300"><span class="w-5 h-5 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0 mt-0.5">–</span>Illimité</li>
+          </ul>
+          <button onclick="goToAuth()" class="w-full py-3.5 rounded-2xl border-2 border-slate-200 text-sm font-bold hover:border-primary transition-colors">Commencer</button>
+        </div>
+        <div class="bg-bg-dark p-8 rounded-3xl relative shadow-2xl">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-bg-dark text-xs font-black px-5 py-1.5 rounded-full">⭐ Populaire</div>
+          <div class="text-xs font-black uppercase tracking-widest text-primary mb-4">Pro</div>
+          <div class="text-5xl font-black tracking-tighter text-white mb-1">€9<span class="text-2xl font-medium text-slate-400">,90</span></div>
+          <div class="text-sm text-slate-400 mb-7">par mois</div>
+          <ul class="space-y-3 mb-8 text-sm font-medium text-slate-300">
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Recettes illimitées</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Programmes illimités</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Conseils illimités</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Support prioritaire</li>
+          </ul>
+          <button onclick="goToAuth()" class="w-full py-3.5 rounded-2xl bg-primary text-bg-dark text-sm font-extrabold hover:opacity-90 transition-opacity">Essai 7 jours gratuits →</button>
+        </div>
+        <div class="bg-white p-8 rounded-3xl border border-slate-100">
+          <div class="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Famille</div>
+          <div class="text-5xl font-black tracking-tighter mb-1">€19<span class="text-2xl font-medium text-slate-400">,90</span></div>
+          <div class="text-sm text-slate-400 mb-7">5 profils / mois</div>
+          <ul class="space-y-3 mb-8 text-sm font-medium">
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Tout Pro × 5</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Profils enfants</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Liste partagée</li>
+            <li class="flex gap-3"><span class="w-5 h-5 rounded-full bg-sage-light flex items-center justify-center text-primary text-xs font-black flex-shrink-0 mt-0.5">✓</span>Dashboard famille</li>
+          </ul>
+          <button onclick="goToAuth()" class="w-full py-3.5 rounded-2xl border-2 border-slate-200 text-sm font-bold hover:border-primary transition-colors">Choisir Famille</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-20 px-5 bg-bg-dark text-center">
+    <h2 class="text-4xl font-black text-white tracking-tight mb-4">Prêt à manger <span class="text-primary">mieux</span> ?</h2>
+    <p class="text-slate-400 mb-8 text-lg">Rejoins des milliers d'utilisateurs qui transforment leur alimentation.</p>
+    <button onclick="goToAuth()" class="bg-primary text-bg-dark px-10 py-4 rounded-2xl font-extrabold text-base hover:opacity-90 transition-opacity shadow-2xl shadow-primary/20">🌿 Créer mon compte gratuitement</button>
+    <p class="text-slate-500 text-sm mt-4">Aucune carte bancaire · Gratuit pour toujours</p>
+  </section>
+
+  <footer class="bg-bg-dark px-8 py-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/5">
+    <span class="font-black text-white">NutriChef <span class="text-primary">AI</span></span>
+    <div class="flex gap-5 text-sm text-slate-500"><a class="hover:text-slate-300 cursor-pointer">Mentions légales</a><a class="hover:text-slate-300 cursor-pointer">Confidentialité</a><a class="hover:text-slate-300 cursor-pointer">Contact</a></div>
+    <span class="text-xs text-slate-600">© 2025 NutriChef AI</span>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════ AUTH ═══════════════════════════════ -->
+<div id="auth" class="screen bg-bg-light">
+  <div class="min-h-screen grid md:grid-cols-2">
+    <!-- Left brand panel -->
+    <div class="hidden md:flex flex-col justify-center items-center p-12 bg-bg-dark relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-br from-sage-dark via-bg-dark to-bg-dark"></div>
+      <div class="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-primary/10 blur-3xl"></div>
+      <div class="relative text-center">
+        <div class="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-6">
+          <span class="ms text-bg-dark" style="font-size:32px;font-variation-settings:'FILL' 1">restaurant_menu</span>
+        </div>
+        <h1 class="text-4xl font-black text-white tracking-tight mb-3">NutriChef <span class="text-primary">AI</span></h1>
+        <p class="text-slate-400 text-base mb-10 max-w-xs leading-relaxed">Ton assistant cuisine & nutrition IA personnel.</p>
+        <div class="space-y-4 text-left">
+          <div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0"><span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">kitchen</span></div><span class="text-slate-300 text-sm font-medium">Recettes depuis ton frigo</span></div>
+          <div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0"><span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">calendar_month</span></div><span class="text-slate-300 text-sm font-medium">Programmes 7 jours sur mesure</span></div>
+          <div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0"><span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">chat_bubble</span></div><span class="text-slate-300 text-sm font-medium">Conseiller nutritionniste IA</span></div>
+          <div class="flex items-center gap-4"><div class="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center flex-shrink-0"><span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">save</span></div><span class="text-slate-300 text-sm font-medium">Historique sauvegardé en cloud</span></div>
+        </div>
+      </div>
+    </div>
+    <!-- Right form -->
+    <div class="flex flex-col justify-center items-center p-8 bg-white">
+      <div class="w-full max-w-sm">
+        <button class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 mb-8 transition-colors" onclick="goToLanding()">
+          <span class="ms" style="font-size:16px">arrow_back</span> Retour
+        </button>
+        <div class="flex bg-bg-light p-1 rounded-xl mb-7">
+          <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-slate-900 transition-all">Connexion</button>
+          <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-400 transition-all">Créer un compte</button>
+        </div>
+        <div id="auth-err" class="mb-4" style="display:none" p-3.5 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium"></div>
+        <div id="auth-ok" class="mb-4" style="display:none" p-3.5 rounded-xl bg-sage-light border border-primary/20 text-sage-muted text-sm font-medium"></div>
+        <div id="form-login">
+          <h2 class="text-2xl font-black tracking-tight mb-1">Bon retour 👋</h2>
+          <p class="text-slate-400 text-sm mb-6">Connecte-toi à ton espace nutrition.</p>
+          <div class="mb-4"><label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Email</label><input type="email" id="login-email" placeholder="toi@email.com" autocomplete="email" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm font-medium transition-colors bg-bg-light"/></div>
+          <div class="mb-6"><label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm font-medium transition-colors bg-bg-light"/></div>
+          <button id="btn-login" onclick="doLogin()" class="w-full py-4 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">🔓 Se connecter</button>
+        </div>
+        <div id="form-signup" class="hidden">
+          <h2 class="text-2xl font-black tracking-tight mb-1">Rejoins NutriChef 🌿</h2>
+          <p class="text-slate-400 text-sm mb-6">Crée ton compte gratuitement.</p>
+          <div class="mb-4"><label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Prénom & Nom</label><input id="signup-name" placeholder="Marie Dupont" autocomplete="name" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm font-medium transition-colors bg-bg-light"/></div>
+          <div class="mb-4"><label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Email</label><input type="email" id="signup-email" placeholder="toi@email.com" autocomplete="email" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm font-medium transition-colors bg-bg-light"/></div>
+          <div class="mb-6"><label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Mot de passe</label><input type="password" id="signup-pass" placeholder="Min. 6 caractères" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm font-medium transition-colors bg-bg-light"/></div>
+          <button id="btn-signup" onclick="doSignup()" class="w-full py-4 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">✨ Créer mon compte</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ APP ═══════════════════════════════ -->
+<div id="app" class="screen">
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR (desktop) -->
+    <aside class="hidden lg:flex w-64 flex-shrink-0 flex-col justify-between bg-white border-r border-slate-100 p-6">
+      <div class="flex flex-col gap-8">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center"><span class="ms text-bg-dark" style="font-size:20px;font-variation-settings:'FILL' 1">restaurant_menu</span></div>
+          <div><div class="font-extrabold tracking-tight">NutriChef <span class="text-primary">AI</span></div><div class="text-xs text-sage-muted font-semibold">Holistic Nutrition</div></div>
+        </div>
+        <nav class="flex flex-col gap-1">
+          <button class="nav-item active flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-left w-full" onclick="switchTab('fridge')"><span class="ms" style="font-variation-settings:'FILL' 1">kitchen</span> Mon Frigo</button>
+          <button class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-500 text-left w-full" onclick="switchTab('nutrition')"><span class="ms" style="font-variation-settings:'FILL' 1">calendar_month</span> 7-Day Plan</button>
+          <button class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-500 text-left w-full" onclick="switchTab('advisor')"><span class="ms" style="font-variation-settings:'FILL' 1">chat_bubble</span> AI Coach</button>
+          <button class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-500 text-left w-full" onclick="switchTab('history')"><span class="ms">history</span> Historique</button>
+          <button class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-500 text-left w-full" onclick="switchTab('profile')"><span class="ms">person</span> Mon Profil</button>
+        </nav>
+      </div>
+      <!-- Usage + User -->
+      <div class="flex flex-col gap-4">
+        <div class="bg-bg-light rounded-2xl p-4 space-y-3">
+          <div class="text-xs font-black uppercase tracking-widest text-slate-400">Utilisation du jour</div>
+          <div id="sb-usage"></div>
+        </div>
+        <div class="bg-sage-light rounded-2xl p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-bg-dark text-sm font-black flex-shrink-0" id="sb-avatar">NC</div>
+          <div class="flex-1 overflow-hidden"><div class="text-sm font-bold truncate" id="sb-name">Chef</div><div class="text-xs text-sage-muted">Plan Gratuit</div></div>
+          <button onclick="doLogout()" class="text-slate-400 hover:text-slate-600 transition-colors" title="Déconnexion"><span class="ms" style="font-size:18px">logout</span></button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Mobile header -->
+      <header class="lg:hidden bg-white border-b border-slate-100 px-4 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"><span class="ms text-bg-dark" style="font-size:16px;font-variation-settings:'FILL' 1">restaurant_menu</span></div>
+          <span class="font-extrabold tracking-tight text-sm">NutriChef <span class="text-primary">AI</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-bg-dark text-xs font-black" id="mob-avatar">NC</div>
+          <button onclick="doLogout()" class="text-slate-400"><span class="ms" style="font-size:18px">logout</span></button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="flex-1 overflow-y-auto bg-bg-light pb-20 lg:pb-0" id="app-main">
+
+        <!-- FRIDGE PANE -->
+        <div id="pane-fridge" class="p-4 lg:p-8 max-w-5xl mx-auto">
+          <!-- Page header -->
+          <div class="mb-6 lg:flex lg:items-end lg:justify-between">
+            <div>
+              <h1 class="text-2xl lg:text-4xl font-black tracking-tight">Empty your <span class="text-primary">Fridge.</span></h1>
+              <p class="text-slate-400 text-sm mt-1">Gemini AI va créer une recette chef à partir de tes ingrédients.</p>
+            </div>
+          </div>
+          <div class="grid lg:grid-cols-5 gap-5">
+            <!-- Left: input -->
+            <div class="lg:col-span-2">
+              <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                <div class="text-sm font-bold text-slate-500 mb-4">Quels ingrédients as-tu ?</div>
+                <div class="relative mb-4">
+                  <span class="ms absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" style="font-size:18px">search</span>
+                  <input id="fridge-input" placeholder="Recherche (ex: Tomate, Poulet…)" onkeydown="if(event.key==='Enter')addIngredient()" class="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm transition-colors bg-bg-light"/>
+                </div>
+                <div id="fridge-tags" class="flex flex-wrap gap-2 mb-4 min-h-0"></div>
+                <div class="mb-4">
+                  <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-3">Préférences</div>
+                  <input id="fridge-prefs" placeholder="Ex: végétarien, sans gluten…" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm transition-colors bg-bg-light"/>
+                </div>
+                <button onclick="generateRecipe()" id="btn-recipe" class="w-full py-4 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 disabled:opacity-40">
+                  <span class="ms" style="font-variation-settings:'FILL' 1">auto_awesome</span> Générer la Recette
+                </button>
+                <div id="recipe-limit" class="hidden mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                  <div class="text-sm font-bold text-amber-700">⏰ Limite quotidienne atteinte</div>
+                  <div class="text-xs text-amber-500 mt-1">5 recettes/jour en plan gratuit. Reviens demain !</div>
+                </div>
+              </div>
+            </div>
+            <!-- Right: result -->
+            <div class="lg:col-span-3">
+              <div id="recipe-empty" class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 h-full flex flex-col items-center justify-center text-center min-h-64">
+                <div class="w-16 h-16 rounded-2xl bg-sage-light flex items-center justify-center mb-4"><span class="ms text-sage-muted" style="font-size:32px;font-variation-settings:'FILL' 1">restaurant</span></div>
+                <div class="font-bold text-slate-600 mb-1">Ta recette apparaîtra ici</div>
+                <div class="text-sm text-slate-400">Ajoute des ingrédients et génère</div>
+              </div>
+              <div id="recipe-loading" class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col items-center justify-center min-h-64" style="display:none">
+                <div class="text-4xl mb-4" style="animation: bounce 1s ease infinite">👨‍🍳</div>
+                <div class="font-bold mb-4">Ton chef prépare la recette…</div>
+                <div class="w-8 h-8 border-3 border-slate-100 border-t-primary rounded-full spinner-el" style="border-width:3px"></div>
+              </div>
+              <div id="recipe-result" class="hidden bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden anim-up">
+                <div class="p-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="font-extrabold text-lg flex items-center gap-2">🍽️ Ta recette</div>
+                    <span class="bg-sage-light text-sage-muted text-xs font-bold px-3 py-1 rounded-full">✓ Sauvegardé</span>
+                  </div>
+                  <div id="recipe-content" class="text-sm leading-relaxed text-slate-600 space-y-1"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NUTRITION PANE -->
+        <div id="pane-nutrition" class="p-4 lg:p-8 max-w-5xl mx-auto" style="display:none">
+          <!-- Form card -->
+          <div id="prog-form-card">
+            <h1 class="text-2xl lg:text-4xl font-black tracking-tight mb-1">7-Day Meal <span class="text-primary">Planner.</span></h1>
+            <p class="text-slate-400 text-sm mb-6">Programme nutritionnel interactif — macros, liste de courses, repas cochables.</p>
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 max-w-lg">
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Objectif</label>
+                  <select id="prog-goal" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm transition-colors bg-bg-light h-12">
+                    <option value="">Choisir…</option>
+                    <option value="perdre du poids">⬇️ Perdre du poids</option>
+                    <option value="prise de masse musculaire">💪 Prise de masse</option>
+                    <option value="maintenir mon poids et ma santé">⚖️ Maintien & santé</option>
+                    <option value="améliorer mes performances sportives">🏃 Performance</option>
+                    <option value="manger sainement avec petit budget">💚 Manger sain & éco</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Budget/sem. (€)</label>
+                  <input type="number" id="prog-budget" placeholder="Ex: 50" min="20" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm transition-colors bg-bg-light"/>
+                </div>
+              </div>
+              <div class="mb-5">
+                <label class="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Restrictions</label>
+                <input id="prog-restrict" placeholder="Ex: végétalien, sans gluten…" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm transition-colors bg-bg-light"/>
+              </div>
+              <button onclick="generateProgram()" id="btn-program" class="w-full py-4 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
+                <span class="ms" style="font-variation-settings:'FILL' 1">auto_awesome</span> Générer mon programme interactif
+              </button>
+              <div id="program-limit" class="hidden mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+                <div class="text-sm font-bold text-amber-700">📅 1 programme par mois (plan gratuit)</div>
+                <div class="text-xs text-amber-500 mt-1">Reviens le mois prochain ou passe en Pro !</div>
+              </div>
+            </div>
+          </div>
+          <!-- Loading -->
+          <div id="program-loading" class="bg-white rounded-3xl p-10 shadow-sm border border-slate-100 text-center max-w-sm mx-auto mt-6" style="display:none">
+            <div class="text-5xl mb-4" style="animation: bounce 1s ease infinite">🥗</div>
+            <div class="font-extrabold text-lg mb-5">Ton nutritionniste prépare ton plan…</div>
+            <div class="space-y-2.5 text-left mb-6">
+              <div id="pls1" class="text-sm px-4 py-2.5 rounded-xl bg-sage-light text-sage-muted font-semibold border border-primary/20">⚡ Analyse de tes objectifs</div>
+              <div id="pls2" class="text-sm px-4 py-2.5 rounded-xl text-slate-300 border border-transparent">🧮 Calcul des macronutriments</div>
+              <div id="pls3" class="text-sm px-4 py-2.5 rounded-xl text-slate-300 border border-transparent">🗓️ Construction du planning</div>
+              <div id="pls4" class="text-sm px-4 py-2.5 rounded-xl text-slate-300 border border-transparent">🛒 Optimisation liste de courses</div>
+            </div>
+            <div class="w-8 h-8 border-3 border-slate-100 border-t-primary rounded-full spinner-el mx-auto" style="border-width:3px"></div>
+          </div>
+          <!-- Canvas -->
+          <div id="prog-canvas" style="display:none">
+            <!-- Header -->
+            <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
+              <div>
+                <h1 class="text-2xl font-black tracking-tight" id="prog-title-display">Mon Programme</h1>
+                <div class="text-sm text-slate-400 mt-1" id="prog-meta-display"></div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Avancement</span>
+                  <div class="w-28 h-2 bg-slate-100 rounded-full overflow-hidden"><div id="prog-progress-fill" class="h-full bg-primary rounded-full transition-all duration-500" style="width:0%"></div></div>
+                  <span id="prog-progress-pct" class="text-sm font-extrabold text-primary">0%</span>
+                </div>
+                <button onclick="resetProgram()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-500 hover:border-primary transition-colors">
+                  <span class="ms" style="font-size:16px">refresh</span> Nouveau
+                </button>
+              </div>
+            </div>
+            <!-- Layout 2 colonnes -->
+            <div class="grid lg:grid-cols-3 gap-5">
+              <!-- Days + Meals (left 2/3) -->
+              <div class="lg:col-span-2">
+                <!-- Days nav -->
+                <div class="flex gap-2 mb-4 overflow-x-auto no-scroll pb-1">
+                  <div id="days-nav" class="flex gap-2"></div>
+                </div>
+                <!-- Day content -->
+                <div id="day-content"></div>
+              </div>
+              <!-- Shopping + Tips (right 1/3) -->
+              <div class="space-y-4">
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                  <button class="w-full flex items-center justify-between" onclick="toggleShopping()">
+                    <div class="flex items-center gap-2.5 font-extrabold"><span class="ms text-primary" style="font-variation-settings:'FILL' 1">shopping_cart</span> Grocery List</div>
+                    <span id="shop-toggle" class="ms text-slate-400" style="font-size:18px">expand_more</span>
+                  </button>
+                  <div id="shopping-list" class="hidden mt-4"></div>
+                </div>
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                  <div class="flex items-center gap-2.5 font-extrabold mb-4"><span class="ms text-primary" style="font-variation-settings:'FILL' 1">lightbulb</span> Conseils</div>
+                  <div id="tips-content"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADVISOR PANE -->
+        <div id="pane-advisor" class="h-full flex flex-col" style="display:none; height: calc(100vh - 56px)">
+          <div class="flex-1 flex overflow-hidden lg:max-w-5xl lg:mx-auto w-full">
+            <!-- Left: history (desktop) -->
+            <div class="hidden lg:flex w-72 flex-shrink-0 flex-col bg-white border-r border-slate-100 p-5">
+              <button onclick="newConsultation()" class="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm mb-6 hover:opacity-90 transition-opacity">
+                <span class="ms" style="font-variation-settings:'FILL' 1">add</span> Nouvelle consultation
+              </button>
+              <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-3">Suggestions</div>
+              <div class="space-y-1">
+                <button onclick="setQuestion('Comment perdre du poids sainement ?')" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-bg-light transition-colors group">
+                  <span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">trending_down</span>
+                  <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Perdre du poids sainement ?</span>
+                </button>
+                <button onclick="setQuestion('Quels aliments boostent l\'énergie ?')" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-bg-light transition-colors group">
+                  <span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">bolt</span>
+                  <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Aliments qui boostent l'énergie ?</span>
+                </button>
+                <button onclick="setQuestion('Manger healthy avec 30€/semaine ?')" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-bg-light transition-colors group">
+                  <span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">savings</span>
+                  <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Manger sain avec peu de budget ?</span>
+                </button>
+                <button onclick="setQuestion('Meilleurs aliments anti-inflammatoires ?')" class="w-full text-left flex items-center gap-3 p-3 rounded-xl hover:bg-bg-light transition-colors group">
+                  <span class="ms text-primary" style="font-size:18px;font-variation-settings:'FILL' 1">spa</span>
+                  <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Aliments anti-inflammatoires ?</span>
+                </button>
+              </div>
+            </div>
+            <!-- Chat area -->
+            <div class="flex-1 flex flex-col bg-bg-light">
+              <!-- Chat header -->
+              <div class="bg-white border-b border-slate-100 px-5 py-4 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0"><span class="ms text-bg-dark" style="font-size:18px;font-variation-settings:'FILL' 1">smart_toy</span></div>
+                <div><div class="font-extrabold text-sm">NutriChef AI</div><div class="flex items-center gap-1.5 text-xs text-sage-muted font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>Always online</div></div>
+              </div>
+              <!-- Messages -->
+              <div class="flex-1 overflow-y-auto p-5 chat-scroll space-y-4" id="chat-wrap">
+                <div class="flex gap-3">
+                  <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div>
+                  <div class="msg-ai rounded-2xl p-4 max-w-sm">
+                    <p class="text-sm leading-relaxed">Bonjour ! Je suis NutriChef AI. Prêt à optimiser ta nutrition ? <br><span class="text-primary font-bold">Pose-moi n'importe quelle question</span> sur l'alimentation, les macros ou les recettes.</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Mobile suggestions -->
+              <div class="lg:hidden px-4 py-2 flex gap-2 overflow-x-auto no-scroll">
+                <button onclick="setQuestion('Comment perdre du poids sainement ?')" class="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-primary transition-colors">💪 Perdre du poids</button>
+                <button onclick="setQuestion('Quels aliments boostent l\'énergie ?')" class="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-primary transition-colors">⚡ Booster l'énergie</button>
+                <button onclick="setQuestion('Manger healthy avec 30€/semaine ?')" class="flex-shrink-0 text-xs font-semibold px-3 py-2 rounded-full bg-white border border-slate-200 text-slate-600 hover:border-primary transition-colors">💸 Budget serré</button>
+              </div>
+              <!-- Input -->
+              <div class="bg-white border-t border-slate-100 p-4">
+                <div id="advisor-limit" class="hidden mb-3 p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-600 font-medium">💬 10 questions atteintes. Reviens demain !</div>
+                <div class="flex items-center gap-3 bg-bg-light rounded-2xl px-4 py-2 border-2 border-transparent focus-within:border-primary transition-colors">
+                  <span class="ms text-slate-300" style="font-size:20px;font-variation-settings:'FILL' 1">smart_toy</span>
+                  <input id="advisor-input" placeholder="Pose ta question nutrition…" onkeydown="if(event.key==='Enter')askAdvisor()" class="flex-1 bg-transparent outline-none text-sm py-2 font-medium"/>
+                  <button onclick="askAdvisor()" id="btn-advisor" class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-bg-dark hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-40">
+                    <span class="ms font-bold" style="font-size:18px">send</span>
+                  </button>
+                </div>
+                <p class="text-center text-xs text-slate-300 mt-2">NutriChef AI est un outil d'aide. Consultez un professionnel pour des conseils médicaux.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY PANE -->
+        <div id="pane-history" class="p-4 lg:p-8 max-w-3xl mx-auto" style="display:none">
+          <h1 class="text-2xl lg:text-3xl font-black tracking-tight mb-1">Mon <span class="text-primary">Historique</span></h1>
+          <p class="text-slate-400 text-sm mb-6">Retrouve toutes tes recettes, programmes et consultations.</p>
+          <div id="hist-loading" class="text-center py-10"><div class="w-8 h-8 border-3 border-slate-100 border-t-primary rounded-full spinner-el mx-auto" style="border-width:3px"></div></div>
+          <div id="hist-empty" class="hidden text-center py-16 bg-white rounded-3xl border border-slate-100">
+            <span class="ms text-slate-200 block mb-3" style="font-size:48px">folder_open</span>
+            <div class="font-bold text-slate-400">Ton historique est vide</div>
+            <div class="text-sm text-slate-300 mt-1">Génère ta première recette !</div>
+          </div>
+          <div id="hist-list" class="hidden space-y-3"></div>
+        </div>
+
+        <!-- PROFILE PANE -->
+        <div id="pane-profile" class="p-4 lg:p-8 max-w-2xl mx-auto" style="display:none">
+          <div id="profile-saved-banner" class="flex items-center gap-3 bg-sage-light border border-primary/20 rounded-2xl p-4 mb-5 text-sage-muted font-semibold text-sm" style="display:none">
+            <span class="ms text-primary" style="font-variation-settings:'FILL' 1">check_circle</span> Profil sauvegardé ! L'IA personnalisera chaque suggestion.
+          </div>
+          <h1 class="text-2xl lg:text-3xl font-black tracking-tight mb-1">Mon <span class="text-primary">Profil</span></h1>
+          <p class="text-slate-400 text-sm mb-6">Ces infos permettent à l'IA de personnaliser chaque recommandation.</p>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-4">
+            <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-4 pb-3 border-b border-slate-100">📋 Informations de base</div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Âge</label><input type="number" id="p-age" placeholder="28" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/></div>
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Sexe</label><select id="p-gender" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light h-12"><option value="">Choisir…</option><option value="homme">Homme</option><option value="femme">Femme</option><option value="autre">Autre</option></select></div>
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Poids (kg)</label><input type="number" id="p-weight" placeholder="70" step="0.5" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/></div>
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Taille (cm)</label><input type="number" id="p-height" placeholder="175" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-4">
+            <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-4 pb-3 border-b border-slate-100">🎯 Objectif principal</div>
+            <div class="grid grid-cols-2 gap-2.5 mb-0" id="goal-grid">
+              <div data-val="perdre du poids" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">⬇️ Perdre du poids</div>
+              <div data-val="prise de masse musculaire" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">💪 Prise de masse</div>
+              <div data-val="maintenir mon poids et ma santé" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">⚖️ Maintien & santé</div>
+              <div data-val="améliorer mes performances sportives" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">🏃 Performance</div>
+              <div data-val="manger sainement avec petit budget" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">💚 Manger sain & éco</div>
+              <div data-val="améliorer ma digestion et ma santé intestinale" onclick="selectGoal(this)" class="goal-btn px-4 py-3.5 rounded-2xl border-2 border-slate-100 text-sm font-semibold text-center cursor-pointer hover:border-primary transition-colors">🌿 Santé intestinale</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-4">
+            <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-4 pb-3 border-b border-slate-100">🏋️ Niveau d'activité</div>
+            <select id="p-activity" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light h-12">
+              <option value="">Choisir…</option>
+              <option value="sédentaire (peu ou pas d'exercice)">🪑 Sédentaire</option>
+              <option value="légèrement actif (1-3 fois/semaine)">🚶 Légèrement actif — 1-3x/sem</option>
+              <option value="modérément actif (3-5 fois/semaine)">🏃 Modérément actif — 3-5x/sem</option>
+              <option value="très actif (6-7 fois/semaine)">⚡ Très actif — 6-7x/sem</option>
+              <option value="extrêmement actif (2x/jour ou travail physique)">🔥 Extrêmement actif</option>
+            </select>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-4">
+            <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-4 pb-3 border-b border-slate-100">🚫 Restrictions & allergies</div>
+            <div class="flex flex-wrap gap-2 mb-3" id="restrictions-grid">
+              <div data-val="végétarien" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🥗 Végétarien</div>
+              <div data-val="végétalien" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🌱 Végétalien</div>
+              <div data-val="sans gluten" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🌾 Sans gluten</div>
+              <div data-val="sans lactose" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🥛 Sans lactose</div>
+              <div data-val="halal" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">☪️ Halal</div>
+              <div data-val="casher" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">✡️ Casher</div>
+              <div data-val="sans porc" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🐷 Sans porc</div>
+              <div data-val="sans œufs" onclick="toggleRestr(this)" class="restr-btn px-4 py-2 rounded-full border-2 border-slate-100 text-sm font-semibold cursor-pointer hover:border-primary transition-colors">🥚 Sans œufs</div>
+            </div>
+            <input id="p-other-restrict" placeholder="Autres restrictions spécifiques…" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-5">
+            <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-4 pb-3 border-b border-slate-100">💰 Budget alimentaire</div>
+            <div class="grid grid-cols-2 gap-4">
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Budget / semaine (€)</label><input type="number" id="p-budget" placeholder="50" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/></div>
+              <div><label class="block text-xs font-bold text-slate-400 mb-1.5">Personnes</label><input type="number" id="p-people" placeholder="1" min="1" class="w-full px-4 py-3 rounded-xl border-2 border-slate-100 focus:border-primary outline-none text-sm bg-bg-light"/></div>
+            </div>
+          </div>
+
+          <button onclick="saveProfile()" class="w-full py-4 rounded-2xl bg-primary text-bg-dark font-extrabold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 mb-4">
+            <span class="ms" style="font-variation-settings:'FILL' 1">save</span> Sauvegarder mon profil
+          </button>
+
+          <div id="imc-card" class="hidden bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div class="font-extrabold mb-4 flex items-center gap-2"><span class="ms text-primary" style="font-variation-settings:'FILL' 1">monitor_heart</span> Analyse corporelle</div>
+            <div class="grid grid-cols-3 gap-3" id="imc-stats"></div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- MOBILE BOTTOM NAV -->
+      <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 flex items-center z-50 safe-bottom" style="padding-bottom: env(safe-area-inset-bottom)">
+        <button onclick="switchTab('fridge')" class="mob-tab flex-1 flex flex-col items-center gap-0.5 py-3 text-primary" id="mob-fridge">
+          <span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">kitchen</span><span class="text-xs font-bold">Frigo</span>
+        </button>
+        <button onclick="switchTab('nutrition')" class="mob-tab flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-400" id="mob-nutrition">
+          <span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">calendar_month</span><span class="text-xs font-semibold">Plan</span>
+        </button>
+        <button onclick="switchTab('advisor')" class="mob-tab flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-400" id="mob-advisor">
+          <span class="ms" style="font-size:22px;font-variation-settings:'FILL' 1">chat_bubble</span><span class="text-xs font-semibold">Chat</span>
+        </button>
+        <button onclick="switchTab('history')" class="mob-tab flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-400" id="mob-history">
+          <span class="ms" style="font-size:22px">history</span><span class="text-xs font-semibold">Historique</span>
+        </button>
+        <button onclick="switchTab('profile')" class="mob-tab flex-1 flex flex-col items-center gap-0.5 py-3 text-slate-400" id="mob-profile">
+          <span class="ms" style="font-size:22px">person</span><span class="text-xs font-semibold">Profil</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════
+const SUPA_URL = "https://hbmdldnfncnoorpkswzp.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhibWRsZG5mbmNub29ycGtzd3pwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTUxODYsImV4cCI6MjA4NzI3MTE4Nn0.fcK_me9201NNY95tYIbClqnxFLvrU1znv2IU08rVSLY";
+const AI_URL  = "https://hbmdldnfncnoorpkswzp.supabase.co/functions/v1/nutrichef-ai";
+const LIMITS  = { recipes:5, programs:1, chats:10 };
+const MEAL_ICO = { "petit-déjeuner":"🌅","déjeuner":"☀️","collation":"🍎","dîner":"🌙" };
+
+let session=null, ingredients=[], chatHistory=[], usage={recipes:0,programs:0,chats:0};
+let userProfile={}, selectedGoal='', selectedRestrictions=[];
+let programData=null, activeDay=0, checkedMeals={}, boughtItems={};
+
+// ═══════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════
+const H  = ()=>({ "Content-Type":"application/json", apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}` });
+const AH = t =>({ "Content-Type":"application/json", apikey:SUPA_KEY, Authorization:`Bearer ${t}` });
+async function signIn(e,p){ const r=await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`,{method:"POST",headers:H(),body:JSON.stringify({email:e,password:p})}); return r.json(); }
+async function signUp(e,p,n){ const r=await fetch(`${SUPA_URL}/auth/v1/signup`,{method:"POST",headers:H(),body:JSON.stringify({email:e,password:p,data:{full_name:n}})}); return r.json(); }
+async function signOut(t){ await fetch(`${SUPA_URL}/auth/v1/logout`,{method:"POST",headers:AH(t)}); }
+async function dbInsert(table,data){ const r=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:{...AH(session.access_token),Prefer:"return=representation"},body:JSON.stringify(data)}); return r.json(); }
+async function dbSelect(uid){ const r=await fetch(`${SUPA_URL}/rest/v1/nutrichef_history?user_id=eq.${uid}&order=created_at.desc&limit=30`,{headers:AH(session.access_token)}); return r.json(); }
+async function dbDelete(id){ await fetch(`${SUPA_URL}/rest/v1/nutrichef_history?id=eq.${id}`,{method:"DELETE",headers:AH(session.access_token)}); }
+function saveSession(s){ try{localStorage.setItem('nc_s',JSON.stringify(s));}catch{} }
+function loadSession(){ try{const s=localStorage.getItem('nc_s');return s?JSON.parse(s):null;}catch{return null;} }
+
+// ═══════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goToLanding(){ showScreen('landing'); }
+function goToAuth()   { showScreen('auth'); }
+function goToApp()    { showScreen('app'); }
+
+// ═══════════════════════════════════
+// AUTH
+// ═══════════════════════════════════
+function switchAuthTab(tab){
+  document.getElementById('form-login').classList.toggle('hidden', tab!=='login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab!=='signup');
+  const login=document.getElementById('tab-login'), signup=document.getElementById('tab-signup');
+  if(tab==='login'){ login.className='flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-slate-900 transition-all'; signup.className='flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-400 transition-all'; }
+  else{ signup.className='flex-1 py-2.5 text-sm font-bold rounded-lg bg-white shadow-sm text-slate-900 transition-all'; login.className='flex-1 py-2.5 text-sm font-bold rounded-lg text-slate-400 transition-all'; }
+  document.getElementById('auth-err').style.display='none'; document.getElementById('auth-ok').style.display='none';
+}
+function showAuthErr(msg){ const el=document.getElementById('auth-err'); el.textContent=msg; el.style.display='block'; document.getElementById('auth-ok').style.display='none'; }
+function showAuthOk(msg) { const el=document.getElementById('auth-ok');  el.textContent=msg; el.style.display='block'; document.getElementById('auth-err').style.display='none'; }
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass =document.getElementById('login-pass').value;
+  if(!email||!pass) return showAuthErr('Remplis tous les champs.');
+  const btn=document.getElementById('btn-login'); btn.disabled=true; btn.textContent='⏳ Connexion...';
+  try{ const r=await signIn(email,pass); if(!r.access_token){ showAuthErr(r.error?.message||'Identifiants incorrects.'); } else{ saveSession(r); initApp(r); } }
+  catch{ showAuthErr('Erreur réseau.'); }
+  btn.disabled=false; btn.textContent='🔓 Se connecter';
+}
+async function doSignup(){
+  const name=document.getElementById('signup-name').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const pass=document.getElementById('signup-pass').value;
+  if(!name||!email||!pass) return showAuthErr('Remplis tous les champs.');
+  if(pass.length<6) return showAuthErr('Mot de passe min. 6 caractères.');
+  const btn=document.getElementById('btn-signup'); btn.disabled=true; btn.textContent='⏳ Création...';
+  try{ const r=await signUp(email,pass,name); if(r.error){ showAuthErr(r.error.message); } else if(r.access_token){ saveSession(r); initApp(r); } else{ showAuthOk('✅ Compte créé ! Connecte-toi.'); switchAuthTab('login'); } }
+  catch{ showAuthErr('Erreur réseau.'); }
+  btn.disabled=false; btn.textContent='✨ Créer mon compte';
+}
+async function doLogout(){
+  if(session?.access_token) try{ await signOut(session.access_token); }catch{}
+  localStorage.removeItem('nc_s'); session=null; goToLanding();
+}
+
+// ═══════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════
+function initApp(s){
+  session=s;
+  const name=s?.user?.user_metadata?.full_name||s?.user?.email?.split('@')[0]||'Chef';
+  const first=name.split(' ')[0];
+  const init=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('sb-name').textContent=first;
+  document.getElementById('sb-avatar').textContent=init;
+  document.getElementById('mob-avatar').textContent=init;
+  const p=loadProfileData(); if(p){ userProfile=p; }
+  loadUsage(); updateSidebarUsage();
+  goToApp(); switchTab('fridge');
+}
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+const TABS = ['fridge','nutrition','advisor','history','profile'];
+function switchTab(tab){
+  // Pane display: advisor uses flex, others block
+  const FLEX_PANES = ['advisor'];
+  TABS.forEach(t=>{
+    const pane=document.getElementById('pane-'+t);
+    if(t===tab){ pane.style.display=FLEX_PANES.includes(t)?'flex':'block'; }
+    else{ pane.style.display='none'; }
+    // Sidebar
+    const nb=document.querySelector(`button.nav-item[onclick*="'${t}'"]`);
+    if(nb){ nb.classList.toggle('active', t===tab); if(t!==tab) nb.classList.add('text-slate-500'); else nb.classList.remove('text-slate-500'); }
+    // Mobile nav
+    const mob=document.getElementById('mob-'+t);
+    if(mob){ mob.classList.toggle('text-primary', t===tab); mob.classList.toggle('text-slate-400', t!==tab); }
+  });
+  if(tab==='history') loadHistory();
+  if(tab==='profile') loadProfileUI();
+}
+
+// ═══════════════════════════════════
+// USAGE
+// ═══════════════════════════════════
+function getUsageKey(type){ const d=new Date().toISOString().split('T')[0]; const m=new Date().toISOString().slice(0,7); return type==='programs'?`nc_u_${type}_${m}`:`nc_u_${type}_${d}`; }
+function getUsage(type){ try{return parseInt(localStorage.getItem(getUsageKey(type))||'0');}catch{return 0;} }
+function incUsage(type){ try{localStorage.setItem(getUsageKey(type),getUsage(type)+1);}catch{} }
+function loadUsage(){ usage={recipes:getUsage('recipes'),programs:getUsage('programs'),chats:getUsage('chats')}; }
+function updateSidebarUsage(){
+  const items=[['Recettes',usage.recipes,5,'kitchen'],['Programmes',usage.programs,1,'calendar_month'],['Conseils',usage.chats,10,'chat_bubble']];
+  document.getElementById('sb-usage').innerHTML=items.map(([lbl,val,max,ico])=>{
+    const pct=Math.min(100,(val/max)*100);
+    const color=pct>=100?'bg-red-400':pct>=60?'bg-amber-400':'bg-primary';
+    return `<div class="mb-2.5 last:mb-0"><div class="flex justify-between text-xs font-semibold text-slate-500 mb-1.5"><span>${lbl}</span><span class="${pct>=100?'text-red-400':pct>=60?'text-amber-400':'text-primary'}">${val}/${max}</span></div><div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${color} rounded-full transition-all duration-500" style="width:${pct}%"></div></div></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════
+// AI CALL
+// ═══════════════════════════════════
+const SYS="Tu es NutriChef AI, chef étoilé et nutritionniste expert. Réponds TOUJOURS en français. IMPORTANT: Va DIRECTEMENT au contenu sans phrases d'introduction ni fioritures. Pour les recettes, commence DIRECTEMENT par le titre puis les sections. Structure: ## Titre de la recette, ## Ingrédients (liste avec -), ## Étapes (liste numérotée), ## Valeurs nutritionnelles. Sois précis et concis.";
+
+async function callAI(msg, maxTokens=2500){
+  const r=await fetch(AI_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPA_KEY}`},body:JSON.stringify({message:msg,system:SYS,max_tokens:maxTokens})});
+  if(!r.ok){ const e=await r.text(); throw new Error('Erreur serveur: '+r.status); }
+  const d=await r.json();
+  if(d.error) throw new Error(d.error);
+  return d.text||'';
+}
+
+function buildProfileCtx(){
+  const p=userProfile; if(!p||!Object.keys(p).length) return '';
+  const parts=[];
+  if(p.age&&p.gender) parts.push(`${p.age} ans, ${p.gender}`);
+  if(p.weight&&p.height) parts.push(`${p.weight}kg, ${p.height}cm`);
+  if(p.goal) parts.push(`objectif: ${p.goal}`);
+  if(p.activity) parts.push(`activité: ${p.activity}`);
+  const rs=[...(p.restrictions||[])]; if(p.otherRestrict) rs.push(p.otherRestrict);
+  if(rs.length) parts.push(`restrictions: ${rs.join(', ')}`);
+  if(p.budget) parts.push(`budget: ${p.budget}€/sem pour ${p.people||1} pers.`);
+  return parts.length?`\n\n[PROFIL: ${parts.join(' | ')}]`:'';
+}
+
+function renderText(text, container){
+  container.innerHTML='';
+  // Remove ```markdown fences if AI returned them
+  const clean = text.replace(/^```[\w]*\n?/,'').replace(/```$/,'').trim();
+  clean.split('\n').forEach(line=>{
+    if(!line.trim()) return; // skip empty lines between sections
+    const el=document.createElement('div');
+    if(line.startsWith('## ')||line.startsWith('### ')){
+      el.className='font-extrabold text-sm mt-4 mb-2 text-primary border-b border-primary/20 pb-1';
+      el.textContent=line.replace(/^#{1,3}\s/,'');
+    } else if(/^\d+\./.test(line)){
+      el.className='text-sm text-slate-700 py-0.5 pl-2';
+      el.innerHTML='<span class="font-bold text-primary mr-2">'+line.match(/^\d+/)[0]+'.</span>'+line.replace(/^\d+\.\s*/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    } else if(line.startsWith('- ')||line.startsWith('• ')){
+      el.className='text-sm text-slate-700 py-0.5 pl-2 flex gap-2';
+      el.innerHTML='<span class="text-primary flex-shrink-0 mt-0.5">·</span><span>'+line.replace(/^[-•]\s*/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')+'</span>';
+    } else if(/^\*\*(.*)\*\*$/.test(line.trim())){
+      el.className='font-extrabold text-sm mt-4 mb-2 text-primary border-b border-primary/20 pb-1';
+      el.textContent=line.replace(/^\*\*|\*\*$/g,'');
+    } else {
+      el.className='text-sm text-slate-600 leading-relaxed';
+      el.innerHTML=line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    }
+    container.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════
+// FRIDGE
+// ═══════════════════════════════════
+function addIngredient(){
+  const inp=document.getElementById('fridge-input');
+  const val=inp.value.trim(); if(!val) return;
+  ingredients.push(val); inp.value=''; renderTags();
+}
+function removeIngredient(i){ ingredients.splice(i,1); renderTags(); }
+function renderTags(){
+  const c=document.getElementById('fridge-tags');
+  c.innerHTML=ingredients.map((it,i)=>`<div class="flex items-center gap-1.5 bg-sage-light text-sage-muted text-sm font-semibold px-3 py-1.5 rounded-full border border-primary/20" style="animation:slideIn .2s ease">${it}<button onclick="removeIngredient(${i})" class="text-sage-muted/50 hover:text-red-400 transition-colors font-bold ml-0.5">×</button></div>`).join('');
+}
+async function generateRecipe(){
+  if(!ingredients.length) return;
+  if(usage.recipes>=LIMITS.recipes){ document.getElementById('recipe-limit').style.display='flex'; return; }
+  document.getElementById('recipe-limit').style.display='none';
+  document.getElementById('recipe-empty').style.display='none';
+  document.getElementById('recipe-result').style.display='none';
+  document.getElementById('recipe-loading').style.display='flex';
+  document.getElementById('btn-recipe').disabled=true;
+  const prefs=document.getElementById('fridge-prefs').value;
+  try{
+    const msg=`Voici mon frigo: ${ingredients.join(', ')}. ${prefs?'Préférences: '+prefs+'.':''} Génère une recette délicieuse et saine.${buildProfileCtx()}`;
+    const text=await callAI(msg);
+    renderText(text, document.getElementById('recipe-content'));
+    document.getElementById('recipe-result').style.display='block';
+    incUsage('recipes'); usage.recipes++; updateSidebarUsage();
+    if(session?.access_token) await dbInsert('nutrichef_history',{user_id:session.user.id,type:'recipe',title:ingredients.slice(0,3).join(', '),content:text});
+  }catch(e){ alert('Erreur: '+e.message); document.getElementById('recipe-empty').style.display='flex'; }
+  document.getElementById('recipe-loading').style.display='none';
+  document.getElementById('btn-recipe').disabled=false;
+}
+
+// ═══════════════════════════════════
+// NUTRITION PROGRAMME
+// ═══════════════════════════════════
+async function generateProgram(){
+  const goal=document.getElementById('prog-goal').value;
+  const budget=document.getElementById('prog-budget').value;
+  if(!goal||!budget) return;
+  if(usage.programs>=LIMITS.programs){ document.getElementById('program-limit').style.display='flex'; return; }
+  document.getElementById('prog-form-card').style.display='none';
+  document.getElementById('program-loading').style.display='block';
+  const steps=['pls1','pls2','pls3','pls4'];
+  let si=0;
+  const iv=setInterval(()=>{
+    if(si>0){ const prev=document.getElementById(steps[si-1]); if(prev){ prev.className='text-sm px-4 py-2.5 rounded-xl text-slate-300 line-through border border-transparent'; } }
+    if(si<steps.length){ const cur=document.getElementById(steps[si]); if(cur){ cur.className='text-sm px-4 py-2.5 rounded-xl bg-sage-light text-sage-muted font-semibold border border-primary/20'; } si++; }
+    else clearInterval(iv);
+  },900);
+  const restrict=document.getElementById('prog-restrict').value;
+  const profileCtx=buildProfileCtx();
+
+  // Helper: parse JSON from raw AI response
+  function extractJSON(raw){
+    const attempts=[
+      ()=>JSON.parse(raw.trim()),
+      ()=>JSON.parse(raw.replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim()),
+      ()=>JSON.parse(raw.replace(/^```\s*/,'').replace(/```\s*$/,'').trim()),
+      ()=>{ const m=raw.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]); throw new Error(); },
+      ()=>{ const s=raw.indexOf('{'),e=raw.lastIndexOf('}'); if(s>=0&&e>s) return JSON.parse(raw.slice(s,e+1)); throw new Error(); }
+    ];
+    for(const fn of attempts){ try{ return fn(); }catch{} }
+    return null;
+  }
+
+  // Build day prompt for a specific set of days
+  function makeDayPrompt(dayNames, includeExtras){
+    const daysStr=dayNames.join(', ');
+    const extras=includeExtras?`,"shoppingList":{"Fruits & Légumes":["..."],"Protéines":["..."],"Féculents":["..."],"Autres":["..."]},"tips":[{"icon":"💧","text":"..."}]`:'';
+    return `Réponds UNIQUEMENT avec du JSON valide, rien d'autre. Pas de markdown.
+
+Programme nutrition pour: objectif=${goal}, budget=${budget}€/sem${restrict?', restrictions='+restrict:''}${profileCtx}
+
+Génère UNIQUEMENT ces jours: ${daysStr}
+
+JSON requis:
+{"title":"Programme ${goal}","totalKcal":1800,"days":[{"day":"${dayNames[0]}","totalKcal":1800,"meals":[{"type":"petit-déjeuner","name":"NOM","kcal":380,"ingredients":["ing1","ing2"],"preparation":"Préparation.","macros":{"proteines":"15g","glucides":"55g","lipides":"10g"}},{"type":"déjeuner","name":"NOM","kcal":520,"ingredients":["ing1"],"preparation":"Préparation.","macros":{"proteines":"40g","glucides":"45g","lipides":"15g"}},{"type":"collation","name":"NOM","kcal":180,"ingredients":["ing1"],"preparation":"Servir.","macros":{"proteines":"6g","glucides":"20g","lipides":"7g"}},{"type":"dîner","name":"NOM","kcal":480,"ingredients":["ing1"],"preparation":"Préparation.","macros":{"proteines":"35g","glucides":"22g","lipides":"20g"}}]}${dayNames.slice(1).map(d=>`,{"day":"${d}","totalKcal":1800,"meals":[...]}`).join('')}]${extras}}
+
+RÈGLES: 4 repas par jour, noms de plats créatifs adaptés à l'objectif, JSON valide uniquement.`;
+  }
+
+  try{
+    // Animate loading steps
+    const updateStep=(i,label)=>{
+      steps.forEach((id,j)=>{
+        const el=document.getElementById(id); if(!el) return;
+        if(j<i) el.className='text-sm px-4 py-2.5 rounded-xl text-slate-300 line-through border border-transparent';
+        else if(j===i){ el.className='text-sm px-4 py-2.5 rounded-xl bg-sage-light text-sage-muted font-semibold border border-primary/20'; if(label) el.textContent=label; }
+        else el.className='text-sm px-4 py-2.5 rounded-xl text-slate-300 border border-transparent';
+      });
+    };
+    updateStep(0,'⚡ Analyse de tes objectifs...');
+
+    // Helper: parse JSON robustement
+    function extractJSON(raw){
+      const attempts=[
+        ()=>JSON.parse(raw.trim()),
+        ()=>JSON.parse(raw.replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim()),
+        ()=>{ const m=raw.match(/\{[\s\S]*\}/); if(m) return JSON.parse(m[0]); throw new Error(); },
+        ()=>{ const s=raw.indexOf('{'),e=raw.lastIndexOf('}'); if(s>=0&&e>s) return JSON.parse(raw.slice(s,e+1)); throw new Error(); }
+      ];
+      for(const fn of attempts){ try{ return fn(); }catch{} }
+      return null;
+    }
+
+    // Helper: appel avec retry sur 429
+    async function callWithRetry(msg, maxTok, retries=2){
+      for(let i=0; i<=retries; i++){
+        try{ return await callAI(msg, maxTok); }
+        catch(e){
+          if(e.message.includes('429') && i<retries){
+            updateStep(1, `⏳ Limite IA atteinte, reprise dans ${15*(i+1)}s...`);
+            await new Promise(r=>setTimeout(r, 15000*(i+1)));
+          } else { throw e; }
+        }
+      }
+    }
+
+    // Prompt unique — 1 seul appel
+    const PROG_PROMPT=`Tu es un nutritionniste. Génère un programme nutrition 7 jours.
+Paramètres: objectif=${goal}, budget=${budget}€/sem${restrict?', restrictions='+restrict:''}${buildProfileCtx()}
+
+IMPORTANT: Réponds UNIQUEMENT avec le JSON ci-dessous complété. Aucun texte avant ou après.
+
+{"title":"Programme ${goal}","totalKcal":1800,"days":[
+{"day":"Lundi","totalKcal":1780,"meals":[{"type":"petit-déjeuner","name":"PLAT","kcal":360,"ingredients":["ing1","ing2"],"preparation":"Prép.","macros":{"proteines":"14g","glucides":"55g","lipides":"9g"}},{"type":"déjeuner","name":"PLAT","kcal":520,"ingredients":["ing1"],"preparation":"Prép.","macros":{"proteines":"38g","glucides":"48g","lipides":"14g"}},{"type":"collation","name":"PLAT","kcal":180,"ingredients":["ing1"],"preparation":"Prép.","macros":{"proteines":"5g","glucides":"22g","lipides":"6g"}},{"type":"dîner","name":"PLAT","kcal":480,"ingredients":["ing1"],"preparation":"Prép.","macros":{"proteines":"34g","glucides":"20g","lipides":"22g"}}]},
+{"day":"Mardi","totalKcal":1800,"meals":[...]},
+{"day":"Mercredi","totalKcal":1800,"meals":[...]},
+{"day":"Jeudi","totalKcal":1800,"meals":[...]},
+{"day":"Vendredi","totalKcal":1800,"meals":[...]},
+{"day":"Samedi","totalKcal":1800,"meals":[...]},
+{"day":"Dimanche","totalKcal":1800,"meals":[...]}
+],"shoppingList":{"Fruits & Légumes":["item1"],"Protéines":["item1"],"Féculents":["item1"],"Autres":["item1"]},"tips":[{"icon":"💧","text":"conseil1"},{"icon":"🕐","text":"conseil2"},{"icon":"🥦","text":"conseil3"}]}
+
+Remplace TOUS les [...] et PLAT par de vraies valeurs. JSON valide uniquement.`;
+
+    updateStep(1,'🧮 Calcul des macros et repas...');
+    const raw = await callWithRetry(PROG_PROMPT, 4000);
+    console.log('[NutriChef] Réponse IA reçue, longueur:', raw.length);
+    console.log('[NutriChef] Début:', raw.slice(0,100));
+
+    updateStep(2,'📅 Structuration du programme...');
+    const parsed = extractJSON(raw);
+    console.log('[NutriChef] JSON parsé:', parsed ? 'OK - '+parsed.days?.length+' jours' : 'ÉCHEC');
+
+    if(!parsed||!Array.isArray(parsed.days)||parsed.days.length<4){
+      console.error('[NutriChef] Réponse brute:', raw);
+      throw new Error('Programme invalide. Réessaie dans quelques secondes.');
+    }
+
+    updateStep(3,'🛒 Finalisation de la liste de courses...');
+    clearInterval(iv);
+
+    programData=parsed; checkedMeals={}; boughtItems={}; activeDay=0;
+    incUsage('programs'); usage.programs++; updateSidebarUsage();
+    if(session?.access_token) await dbInsert('nutrichef_history',{user_id:session.user.id,type:'program',title:parsed.title||goal,content:JSON.stringify(parsed)});
+    document.getElementById('program-loading').style.display='none';
+    document.getElementById('prog-canvas').style.display='block';
+    renderCanvas();
+
+  }catch(e){
+    clearInterval(iv);
+    document.getElementById('program-loading').style.display='none';
+    document.getElementById('prog-form-card').style.display='block';
+    document.getElementById('btn-program').disabled=false;
+    // Show user-friendly error inside the form
+    const errEl=document.createElement('div');
+    errEl.className='mt-3 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium';
+    errEl.textContent='⚠️ '+e.message+' Clique sur le bouton pour réessayer.';
+    document.getElementById('prog-form-card').appendChild(errEl);
+    setTimeout(()=>errEl.remove(),5000);
+    console.error('Programme error:',e);
+  }
+}
+
+function renderCanvas(){
+  if(!programData) return;
+  const p=programData;
+  document.getElementById('prog-title-display').textContent=p.title||'Mon Programme';
+  document.getElementById('prog-meta-display').textContent=`~${p.totalKcal} kcal/jour · ${new Date().toLocaleDateString('fr-FR')}`;
+  // Days nav
+  document.getElementById('days-nav').innerHTML=(p.days||[]).map((d,i)=>{
+    const done=(d.meals||[]).every((_,mi)=>checkedMeals[`d${i}m${mi}`]);
+    const active=i===activeDay;
+    const cls=active?'bg-primary text-bg-dark border-primary':done?'bg-sage-light border-primary/40 text-sage-muted':'bg-white border-slate-200 text-slate-600 hover:border-primary';
+    return `<button onclick="setActiveDay(${i})" class="flex flex-col items-center px-3.5 py-2.5 rounded-2xl border-2 ${cls} transition-all flex-shrink-0 min-w-[52px] font-display">
+      <span class="text-xs font-black uppercase tracking-widest opacity-60">${(d.day||'J'+(i+1)).slice(0,3)}</span>
+      <span class="text-sm font-extrabold mt-0.5">J${i+1}</span>
+      <span class="w-1.5 h-1.5 rounded-full mt-1 ${active?'bg-bg-dark/30':done?'bg-primary':'bg-slate-200'}"></span>
+    </button>`;
+  }).join('');
+  renderDay(); renderShopping(); renderTips(); updateProgProgress();
+}
+
+function setActiveDay(i){ activeDay=i; renderCanvas(); }
+
+function renderDay(){
+  const day=programData.days[activeDay]; if(!day) return;
+  document.getElementById('day-content').innerHTML=`
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-extrabold text-lg">${day.day}</h3>
+        <span class="bg-sage-light text-sage-muted text-xs font-bold px-3 py-1.5 rounded-full">🔥 ${day.totalKcal} kcal</span>
+      </div>
+      ${(day.meals||[]).map((meal,mi)=>renderMealHTML(meal,activeDay,mi)).join('')}
+    </div>`;
+}
+
+function renderMealHTML(meal,di,mi){
+  const key=`d${di}m${mi}`;
+  const checked=!!checkedMeals[key];
+  const ico=MEAL_ICO[meal.type]||'🍽️';
+  return `<div class="border-2 ${checked?'border-primary/25 bg-sage-light/30':'border-slate-100'} rounded-2xl mb-2.5 overflow-hidden transition-all" id="meal-${key}">
+    <div class="flex items-center gap-3 p-4 cursor-pointer" onclick="toggleMealOpen('${key}')">
+      <div onclick="event.stopPropagation();checkMeal('${key}')" class="w-6 h-6 rounded-full border-2 ${checked?'bg-primary border-primary':'border-slate-200'} flex items-center justify-center text-xs font-black text-bg-dark flex-shrink-0 cursor-pointer transition-all">${checked?'✓':''}</div>
+      <span class="text-xl flex-shrink-0">${ico}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-black uppercase tracking-widest text-slate-400">${meal.type}</div>
+        <div class="font-extrabold text-sm ${checked?'line-through opacity-40':''} truncate">${meal.name}</div>
+      </div>
+      <span class="text-xs font-bold text-slate-300 flex-shrink-0">${meal.kcal} kcal</span>
+      <span class="ms text-slate-300 flex-shrink-0 meal-arrow-${key}" style="font-size:16px;transition:transform .3s">expand_more</span>
+    </div>
+    <div id="meal-detail-${key}" class="hidden px-5 pb-4 pt-1 border-t border-slate-50">
+      ${meal.ingredients?.length?`<div class="bg-sage-light rounded-xl p-3 mb-3 text-sm text-sage-muted"><strong class="text-sage-dark font-extrabold">Ingrédients :</strong> ${meal.ingredients.join(' · ')}</div>`:''}
+      ${meal.preparation?`<p class="text-sm text-slate-600 leading-relaxed mb-3">${meal.preparation}</p>`:''}
+      ${meal.macros&&Object.keys(meal.macros).length?`<div class="flex gap-2 flex-wrap">${meal.macros.proteines?`<span class="bg-bg-light px-3 py-1 rounded-lg text-xs font-bold">🥩 ${meal.macros.proteines}</span>`:''}${meal.macros.glucides?`<span class="bg-bg-light px-3 py-1 rounded-lg text-xs font-bold">🍞 ${meal.macros.glucides}</span>`:''}${meal.macros.lipides?`<span class="bg-bg-light px-3 py-1 rounded-lg text-xs font-bold">🥑 ${meal.macros.lipides}</span>`:''}` : ''}</div>
+    </div>
+  </div>`;
+}
+
+function toggleMealOpen(key){
+  const det=document.getElementById('meal-detail-'+key);
+  const arrow=document.querySelector('.meal-arrow-'+key);
+  if(!det) return;
+  const open=!det.classList.contains('hidden');
+  det.classList.toggle('hidden', open);
+  if(arrow) arrow.style.transform=open?'rotate(0deg)':'rotate(180deg)';
+}
+
+function checkMeal(key){
+  checkedMeals[key]?delete checkedMeals[key]:checkedMeals[key]=true;
+  renderCanvas();
+}
+
+function updateProgProgress(){
+  const total=programData.days.reduce((a,d)=>a+(d.meals?.length||0),0);
+  const done=Object.keys(checkedMeals).length;
+  const pct=total>0?Math.round((done/total)*100):0;
+  document.getElementById('prog-progress-fill').style.width=pct+'%';
+  document.getElementById('prog-progress-pct').textContent=pct+'%';
+}
+
+function renderShopping(){
+  if(!programData?.shoppingList) return;
+  document.getElementById('shopping-list').innerHTML=Object.entries(programData.shoppingList).map(([cat,items])=>`
+    <div class="mb-4">
+      <div class="text-xs font-black uppercase tracking-widest text-slate-300 mb-2 pb-2 border-b border-slate-100">${cat}</div>
+      <div class="space-y-1.5">${items.map(item=>`
+        <div onclick="toggleBought('${item.replace(/'/g,"\\'")}${item}')" class="flex items-center gap-2.5 cursor-pointer group ${boughtItems[item]?'opacity-50':''}">
+          <div class="w-4 h-4 rounded border-2 ${boughtItems[item]?'bg-primary border-primary':'border-slate-200 group-hover:border-primary'} flex items-center justify-center flex-shrink-0 transition-all"><span class="text-bg-dark text-xs font-black ${boughtItems[item]?'':'hidden'}">✓</span></div>
+          <span class="text-sm font-medium ${boughtItems[item]?'line-through text-slate-300':''}">${item}</span>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function toggleBought(item){ boughtItems[item]?delete boughtItems[item]:boughtItems[item]=true; renderShopping(); }
+
+function toggleShopping(){
+  const list=document.getElementById('shopping-list');
+  const tog=document.getElementById('shop-toggle');
+  const open=!list.classList.contains('hidden');
+  list.classList.toggle('hidden', open);
+  tog.textContent=open?'expand_more':'expand_less';
+}
+
+function renderTips(){
+  if(!programData?.tips) return;
+  document.getElementById('tips-content').innerHTML=programData.tips.map(t=>`
+    <div class="flex gap-3 py-3 border-b border-slate-50 last:border-0">
+      <span class="text-xl flex-shrink-0">${t.icon||'💡'}</span>
+      <span class="text-sm text-slate-600 leading-relaxed">${t.text}</span>
+    </div>`).join('');
+}
+
+function resetProgram(){
+  programData=null; checkedMeals={}; boughtItems={};
+  document.getElementById('prog-canvas').style.display='none';
+  document.getElementById('prog-form-card').style.display='block';
+  document.getElementById('btn-program').disabled=false;
+  document.getElementById('program-limit').style.display='none';
+}
+
+// ═══════════════════════════════════
+// ADVISOR
+// ═══════════════════════════════════
+function setQuestion(q){ document.getElementById('advisor-input').value=q; document.getElementById('advisor-input').focus(); }
+function newConsultation(){ chatHistory=[]; renderChat(); }
+
+async function askAdvisor(){
+  const inp=document.getElementById('advisor-input');
+  const q=inp.value.trim(); if(!q) return;
+  if(usage.chats>=LIMITS.chats){ document.getElementById('advisor-limit').style.display='flex'; return; }
+  inp.value='';
+  document.getElementById('advisor-limit').style.display='none';
+
+  // Add user message to history and DOM directly (don't full re-render)
+  chatHistory.push({role:'user',text:q});
+  const wrap=document.getElementById('chat-wrap');
+  const userBubble=document.createElement('div');
+  userBubble.className='flex justify-end gap-3';
+  userBubble.innerHTML=`<div class="msg-user rounded-2xl p-4 max-w-sm"><p class="text-sm leading-relaxed font-medium">${escHtml(q)}</p></div><div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-slate-400" style="font-size:15px;font-variation-settings:'FILL' 1">person</span></div>`;
+  wrap.appendChild(userBubble);
+
+  // Typing indicator
+  const typEl=document.createElement('div');
+  typEl.className='flex gap-3';
+  typEl.innerHTML=`<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div><div class="msg-ai rounded-2xl p-4"><div class="flex gap-1.5"><span class="w-2 h-2 bg-slate-300 rounded-full animate-bounce"></span><span class="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style="animation-delay:.15s"></span><span class="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style="animation-delay:.3s"></span></div></div>`;
+  wrap.appendChild(typEl);
+  wrap.scrollTop=wrap.scrollHeight;
+
+  document.getElementById('btn-advisor').disabled=true;
+  try{
+    const text=await callAI(q+buildProfileCtx());
+    typEl.remove(); // Remove typing indicator
+
+    // Build AI bubble
+    const aiBubble=document.createElement('div');
+    aiBubble.className='flex gap-3';
+    const lines=text.split('\n').map(line=>{
+      if(!line.trim()) return '';
+      if(line.startsWith('##')||line.startsWith('### ')||/^\*\*(.*)\*\*$/.test(line.trim())) return `<p class="font-extrabold text-sm mt-2 mb-1 text-primary">${line.replace(/^#{1,3}\s/,'').replace(/^\*\*|\*\*$/g,'')}</p>`;
+      if(/^\d+\./.test(line)) return `<p class="text-sm py-0.5"><span class="font-bold text-primary mr-1">${line.match(/^\d+/)[0]}.</span>${line.replace(/^\d+\.\s*/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</p>`;
+      if(line.startsWith('- ')||line.startsWith('• ')) return `<p class="text-sm py-0.5 flex gap-2"><span class="text-primary flex-shrink-0">·</span><span>${line.replace(/^[-•]\s*/,'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</span></p>`;
+      return `<p class="text-sm py-0.5">${line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</p>`;
+    }).filter(Boolean).join('');
+    aiBubble.innerHTML=`<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div><div class="msg-ai rounded-2xl p-4 max-w-lg leading-relaxed">${lines}</div>`;
+    wrap.appendChild(aiBubble);
+    wrap.scrollTop=wrap.scrollHeight;
+
+    chatHistory.push({role:'assistant',text});
+    // Count only once per AI response
+    incUsage('chats'); usage.chats++; updateSidebarUsage();
+    if(session?.access_token) await dbInsert('nutrichef_history',{user_id:session.user.id,type:'chat',title:q.slice(0,60),content:text});
+  }catch(e){
+    typEl.remove();
+    const errBubble=document.createElement('div');
+    errBubble.className='flex gap-3';
+    errBubble.innerHTML=`<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div><div class="msg-ai rounded-2xl p-4 text-sm text-red-500">❌ Erreur: ${e.message}</div>`;
+    wrap.appendChild(errBubble);
+    wrap.scrollTop=wrap.scrollHeight;
+  }
+  document.getElementById('btn-advisor').disabled=false;
+}
+
+function renderChat(){
+  const wrap=document.getElementById('chat-wrap');
+  const initial=`<div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div><div class="msg-ai rounded-2xl p-4 max-w-sm"><p class="text-sm leading-relaxed">Bonjour ! Je suis NutriChef AI. Prêt à optimiser ta nutrition ? <br><span class="text-primary font-bold">Pose-moi n'importe quelle question</span> sur l'alimentation, les macros ou les recettes.</p></div></div>`;
+  const msgs=chatHistory.map(m=>{
+    if(m.role==='user') return `<div class="flex justify-end gap-3"><div class="msg-user rounded-2xl p-4 max-w-sm"><p class="text-sm leading-relaxed font-medium">${m.text}</p></div><div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-slate-400" style="font-size:15px;font-variation-settings:'FILL' 1">person</span></div></div>`;
+    const lines=m.text.split('\n').map(line=>{
+      if(line.startsWith('##')||/^\*\*.*\*\*$/.test(line)) return `<p class="font-extrabold text-sm mt-2 mb-1 text-primary">${line.replace(/##\s?|^\*\*|\*\*$/g,'')}</p>`;
+      if(line.startsWith('-')||line.startsWith('•')) return `<p class="text-sm pl-3">${line}</p>`;
+      return `<p class="text-sm">${line.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</p>`;
+    }).join('');
+    return `<div class="flex gap-3"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"><span class="ms text-bg-dark" style="font-size:15px;font-variation-settings:'FILL' 1">smart_toy</span></div><div class="msg-ai rounded-2xl p-4 max-w-lg leading-relaxed space-y-0.5">${lines}</div></div>`;
+  }).join('');
+  wrap.innerHTML=initial+msgs;
+  wrap.scrollTop=wrap.scrollHeight;
+}
+
+// ═══════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════
+async function loadHistory(){
+  if(!session?.access_token) return;
+  document.getElementById('hist-loading').style.display='block';
+  document.getElementById('hist-empty').style.display='none';
+  document.getElementById('hist-list').style.display='none';
+  try{
+    const items=await dbSelect(session.user.id);
+    document.getElementById('hist-loading').style.display='none';
+    if(!Array.isArray(items)||!items.length){ document.getElementById('hist-empty').style.display='block'; return; }
+    const TC={recipe:'bg-emerald-50 text-emerald-700',program:'bg-amber-50 text-amber-700',chat:'bg-blue-50 text-blue-700'};
+    const TL={recipe:'🧊 Recette',program:'📊 Programme',chat:'💬 Conseil'};
+    const list=document.getElementById('hist-list');
+    list.classList.remove('hidden');
+    list.innerHTML=items.map(it=>`
+      <div class="bg-white rounded-2xl border border-slate-100 p-4 flex gap-3 hover:shadow-sm transition-shadow" id="hi-${it.id}">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="${TC[it.type]||TC.recipe} text-xs font-extrabold px-2.5 py-1 rounded-full">${TL[it.type]||it.type}</span>
+            <span class="text-xs text-slate-300 font-medium">${new Date(it.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</span>
+          </div>
+          <div class="text-sm font-semibold text-slate-700 truncate">${it.title||'Sans titre'}</div>
+          <div id="hfull-${it.id}" class="hidden mt-3 pt-3 border-t border-slate-50 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">${escHtml(it.content||'')}</div>
+          <button onclick="toggleHist('${it.id}')" class="text-xs font-bold text-primary mt-2 hover:text-sage-muted transition-colors">▼ Voir le détail</button>
+        </div>
+        <button onclick="deleteHist('${it.id}')" class="text-slate-200 hover:text-red-400 transition-colors self-start"><span class="ms" style="font-size:20px">close</span></button>
+      </div>`).join('');
+  }catch{ document.getElementById('hist-loading').style.display='none'; document.getElementById('hist-empty').style.display='block'; }
+}
+function toggleHist(id){
+  const full=document.getElementById('hfull-'+id);
+  const btn=full.previousElementSibling;
+  const open=!full.classList.contains('hidden');
+  full.classList.toggle('hidden', open);
+  btn.textContent=open?'▼ Voir le détail':'▲ Réduire';
+}
+async function deleteHist(id){ await dbDelete(id); document.getElementById('hi-'+id)?.remove(); if(!document.querySelector('[id^="hi-"]')){ document.getElementById('hist-list').style.display='none'; document.getElementById('hist-empty').style.display='block'; } }
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════
+function loadProfileUI(){
+  const p=loadProfileData(); if(!p) return; userProfile=p;
+  if(p.age) document.getElementById('p-age').value=p.age;
+  if(p.gender) document.getElementById('p-gender').value=p.gender;
+  if(p.weight) document.getElementById('p-weight').value=p.weight;
+  if(p.height) document.getElementById('p-height').value=p.height;
+  if(p.activity) document.getElementById('p-activity').value=p.activity;
+  if(p.budget) document.getElementById('p-budget').value=p.budget;
+  if(p.people) document.getElementById('p-people').value=p.people;
+  if(p.otherRestrict) document.getElementById('p-other-restrict').value=p.otherRestrict;
+  if(p.goal){ selectedGoal=p.goal; document.querySelectorAll('.goal-btn').forEach(b=>{ const sel=b.dataset.val===p.goal; b.classList.toggle('border-primary',sel); b.classList.toggle('bg-sage-light',sel); b.classList.toggle('text-sage-dark',sel); b.classList.toggle('border-slate-100',!sel); }); }
+  if(p.restrictions){ selectedRestrictions=p.restrictions; document.querySelectorAll('.restr-btn').forEach(b=>{ const sel=p.restrictions.includes(b.dataset.val); b.classList.toggle('border-primary',sel); b.classList.toggle('bg-sage-light',sel); b.classList.toggle('border-slate-100',!sel); }); }
+  updateImcCard(p);
+}
+function selectGoal(el){
+  selectedGoal=el.dataset.val;
+  document.querySelectorAll('.goal-btn').forEach(b=>{ b.classList.remove('border-primary','bg-sage-light','text-sage-dark'); b.classList.add('border-slate-100'); });
+  el.classList.add('border-primary','bg-sage-light','text-sage-dark'); el.classList.remove('border-slate-100');
+}
+function toggleRestr(el){
+  const v=el.dataset.val;
+  if(selectedRestrictions.includes(v)){ selectedRestrictions=selectedRestrictions.filter(r=>r!==v); el.classList.remove('border-primary','bg-sage-light'); el.classList.add('border-slate-100'); }
+  else{ selectedRestrictions.push(v); el.classList.add('border-primary','bg-sage-light'); el.classList.remove('border-slate-100'); }
+}
+function saveProfile(){
+  const p={age:document.getElementById('p-age').value,gender:document.getElementById('p-gender').value,weight:document.getElementById('p-weight').value,height:document.getElementById('p-height').value,activity:document.getElementById('p-activity').value,budget:document.getElementById('p-budget').value,people:document.getElementById('p-people').value,goal:selectedGoal,restrictions:[...selectedRestrictions],otherRestrict:document.getElementById('p-other-restrict').value};
+  saveProfileData(p); userProfile=p; updateImcCard(p);
+  const b=document.getElementById('profile-saved-banner'); b.style.display='flex'; setTimeout(()=>b.style.display='none',3500);
+}
+function updateImcCard(p){
+  if(!p.weight||!p.height) return;
+  const w=parseFloat(p.weight),h=parseFloat(p.height)/100;
+  const imc=(w/(h*h)).toFixed(1);
+  let status='',color='';
+  if(imc<18.5){status='Insuffisance';color='text-blue-500';}
+  else if(imc<25){status='✅ Normal';color='text-primary';}
+  else if(imc<30){status='Surpoids';color='text-amber-500';}
+  else{status='Obésité';color='text-red-500';}
+  let bmr=0;
+  if(p.age){ bmr=p.gender==='femme'?10*w+6.25*(h*100)-5*parseFloat(p.age)-161:10*w+6.25*(h*100)-5*parseFloat(p.age)+5; }
+  const acts={'sédentaire (peu ou pas d\'exercice)':1.2,'légèrement actif (1-3 fois/semaine)':1.375,'modérément actif (3-5 fois/semaine)':1.55,'très actif (6-7 fois/semaine)':1.725,'extrêmement actif (2x/jour ou travail physique)':1.9};
+  const tdee=bmr?Math.round(bmr*(acts[p.activity]||1.375)):null;
+  document.getElementById('imc-card').style.display='block';
+  document.getElementById('imc-stats').innerHTML=`
+    <div class="bg-bg-light rounded-2xl p-4 text-center"><div class="text-3xl font-black tracking-tighter">${imc}</div><div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">IMC</div><div class="text-xs font-extrabold mt-1.5 ${color}">${status}</div></div>
+    ${tdee?`<div class="bg-bg-light rounded-2xl p-4 text-center"><div class="text-3xl font-black tracking-tighter text-primary">${tdee}</div><div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">kcal/jour</div><div class="text-xs font-semibold text-slate-400 mt-1.5">Besoins estimés</div></div>`:''}
+    <div class="bg-bg-light rounded-2xl p-4 text-center"><div class="text-3xl font-black tracking-tighter">${w}kg</div><div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Poids actuel</div><div class="text-xs font-semibold text-slate-400 mt-1.5">${Math.round(h*100)}cm</div></div>`;
+}
+function saveProfileData(p){ try{localStorage.setItem('nc_profile',JSON.stringify(p));}catch{} }
+function loadProfileData(){ try{const p=localStorage.getItem('nc_profile');return p?JSON.parse(p):null;}catch{return null;} }
+
+// ═══════════════════════════════════
+// LANDING NAV SCROLL
+// ═══════════════════════════════════
+window.addEventListener('scroll',()=>{
+  const nav=document.getElementById('lnav');
+  if(nav) nav.className=`fixed top-0 left-0 right-0 z-50 px-6 transition-all duration-300 py-4 flex items-center justify-between ${window.scrollY>50?'bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100':''}`;
+},{ passive:true });
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+(function init(){
+  const s=loadSession();
+  if(s?.access_token){ initApp(s); }
+})();
+</script>
+</body>
+</html>
